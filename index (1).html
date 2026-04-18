@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>포켓몬 선호 특성 아이템 찾기</title>
+  <script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=41347"></script><script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --chip: #f1f5f9;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero {
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 40px);
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .card-head {
+      padding: 20px 20px 0;
+    }
+    .card-body {
+      padding: 20px;
+    }
+    .stack { display: grid; gap: 16px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .upload {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 56px;
+      border: 1px dashed #94a3b8;
+      border-radius: 16px;
+      background: #fff;
+      cursor: pointer;
+      padding: 12px;
+      text-align: center;
+      transition: .15s ease;
+    }
+    .upload:hover { background: #f8fafc; }
+    .upload input { display: none; }
+    .search {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+    }
+    .search:focus { border-color: var(--primary); }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .btn {
+      border: 0;
+      background: var(--primary);
+      color: white;
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+    .btn:hover { filter: brightness(0.96); }
+    .btn.secondary {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .traits-box {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 16px;
+      padding: 10px;
+      height: 420px;
+      overflow: auto;
+    }
+    .trait-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .trait-item:hover { background: #f8fafc; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--chip);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 13px;
+    }
+    .chip.selected {
+      background: var(--primary-soft);
+      color: #1d4ed8;
+    }
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .item {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fff;
+    }
+    .item h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+    .empty {
+      border: 1px dashed #cbd5e1;
+      border-radius: 18px;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
+    }
+    footer {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .traits-box { height: 260px; }
+      .wrap { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>포켓몬 선호 특성 아이템 찾기</h1>
+      <p>엑셀을 업로드한 뒤, 원하는 선호 특성을 여러 개 선택하면 그 조건을 모두 만족하는 아이템만 보여줍니다.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-head"><h2>조건 선택</h2></div>
+        <div class="card-body stack">
+          <div>
+            <label class="label">엑셀 업로드</label>
+            <label class="upload">
+              <span id="uploadText">파일 선택 (.xlsx, .xls)</span>
+              <input id="fileInput" type="file" accept=".xlsx,.xls" />
+            </label>
+            <div class="small muted" id="fileInfo" style="margin-top:8px;">현재 데이터: 업로드 전</div>
+          </div>
+
+          <div>
+            <label class="label" for="searchInput">특성 검색</label>
+            <input id="searchInput" class="search" placeholder="예: 깜찍한 것" />
+          </div>
+
+          <div>
+            <div class="row" style="margin-bottom:8px;">
+              <label class="label" style="margin:0;">선호 특성</label>
+              <button class="btn secondary" id="resetBtn" type="button">초기화</button>
+            </div>
+            <div class="traits-box" id="traitsBox">
+              <div class="empty">엑셀을 업로드하면 특성 목록이 표시됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="card">
+          <div class="card-head">
+            <div class="row">
+              <h2>선택한 조건</h2>
+              <button class="btn" id="exportBtn" type="button">결과 엑셀 저장</button>
+            </div>
+          </div>
+          <div class="card-body stack">
+            <div class="chips" id="selectedChips">
+              <span class="muted">조건을 선택하세요.</span>
+            </div>
+            <div class="muted">조건을 모두 만족하는 아이템: <strong id="countText">0개</strong></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>검색 결과</h2></div>
+          <div class="card-body">
+            <div class="results" id="results"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div>Pokemon is © Nintendo / Game Freak / The Pokemon Company.</div>
+      <div>This is an unofficial fan site. Not affiliated with or endorsed by Nintendo.</div>
+    </footer>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const uploadText = document.getElementById('uploadText');
+    const fileInfo = document.getElementById('fileInfo');
+    const searchInput = document.getElementById('searchInput');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const traitsBox = document.getElementById('traitsBox');
+    const selectedChips = document.getElementById('selectedChips');
+    const countText = document.getElementById('countText');
+    const results = document.getElementById('results');
+
+    let items = [];
+    let selectedTraits = [];
+    let searchText = '';
+
+    function normalizeTraitText(text) {
+      return String(text || '')
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+    }
+
+    function uniqueTraits(data) {
+      return [...new Set(data.flatMap(row => row.traits))].sort((a, b) => a.localeCompare(b, 'ko'));
+    }
+
+    function filteredTraits() {
+      const traits = uniqueTraits(items);
+      if (!searchText.trim()) return traits;
+      return traits.filter(trait => trait.includes(searchText.trim()));
+    }
+
+    function matchedItems() {
+      if (selectedTraits.length === 0) return items;
+      return items.filter(row => selectedTraits.every(trait => row.traits.includes(trait)));
+    }
+
+    function renderTraits() {
+      const traits = filteredTraits();
+      if (items.length === 0) {
+        traitsBox.innerHTML = '<div class="empty">엑셀을 업로드하면 특성 목록이 표시됩니다.</div>';
+        return;
+      }
+      if (traits.length === 0) {
+        traitsBox.innerHTML = '<div class="empty">검색된 특성이 없습니다.</div>';
+        return;
+      }
+
+      traitsBox.innerHTML = traits.map(trait => {
+        const checked = selectedTraits.includes(trait) ? 'checked' : '';
+        return `
+          <label class="trait-item">
+            <input type="checkbox" data-trait="${escapeHtml(trait)}" ${checked} />
+            <span>${escapeHtml(trait)}</span>
+          </label>
+        `;
+      }).join('');
+
+      traitsBox.querySelectorAll('input[type="checkbox"]').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const trait = e.target.getAttribute('data-trait');
+          if (e.target.checked) {
+            if (!selectedTraits.includes(trait)) selectedTraits.push(trait);
+          } else {
+            selectedTraits = selectedTraits.filter(t => t !== trait);
+          }
+          renderAll();
+        });
+      });
+    }
+
+    function renderSelectedChips() {
+      if (selectedTraits.length === 0) {
+        selectedChips.innerHTML = '<span class="muted">조건을 선택하세요.</span>';
+        return;
+      }
+      selectedChips.innerHTML = selectedTraits
+        .map(trait => `<span class="chip selected">${escapeHtml(trait)}</span>`)
+        .join('');
+    }
+
+    function renderResults() {
+      const matched = matchedItems();
+      countText.textContent = `${matched.length}개`;
+
+      if (items.length === 0) {
+        results.innerHTML = '<div class="empty" style="grid-column:1/-1;">먼저 엑셀 파일을 업로드하세요.</div>';
+        return;
+      }
+
+      if (matched.length === 0) {
+        results.innerHTML = '<div class="empty" style="grid-column:1/-1;">조건을 모두 만족하는 아이템이 없습니다.</div>';
+        return;
+      }
+
+      results.innerHTML = matched.map(row => `
+        <article class="item">
+          <h3>${escapeHtml(row.item)}</h3>
+          <div class="chips">
+            ${row.traits.map(trait => `<span class="chip ${selectedTraits.includes(trait) ? 'selected' : ''}">${escapeHtml(trait)}</span>`).join('')}
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function renderAll() {
+      renderTraits();
+      renderSelectedChips();
+      renderResults();
+    }
+
+    function exportResultsToExcel() {
+      const matched = matchedItems().map(row => ({
+        아이템명: row.item,
+        '포켓몬 선호 특성': row.traits.join(', ')
+      }));
+
+      if (matched.length === 0) {
+        alert('저장할 결과가 없습니다.');
+        return;
+      }
+
+      const ws = XLSX.utils.json_to_sheet(matched);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '결과');
+      XLSX.writeFile(wb, 'filtered_items.xlsx');
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      uploadText.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+        items = json
+          .map(row => ({
+            item: String(row['아이템명'] || '').trim(),
+            traits: normalizeTraitText(row['포켓몬 선호 특성'])
+          }))
+          .filter(row => row.item);
+
+        selectedTraits = [];
+        searchText = '';
+        searchInput.value = '';
+        fileInfo.textContent = `현재 데이터: ${file.name} (${items.length}개 아이템)`;
+        renderAll();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      searchText = e.target.value;
+      renderTraits();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      selectedTraits = [];
+      searchText = '';
+      searchInput.value = '';
+      renderAll();
+    });
+
+    exportBtn.addEventListener('click', exportResultsToExcel);
+
+    renderAll();
+  </script>
+</body>
+</html>
