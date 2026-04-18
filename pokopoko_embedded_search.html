@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>포켓몬 선호 특성 아이템 찾기</title>
+  <style>
+    :root {
+      --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+      --accent:#2563eb; --accent-soft:#dbeafe; --chip:#eef2ff;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width:1200px; margin:0 auto; padding:24px; }
+    h1 { margin:0 0 8px; font-size:32px; }
+    .sub { color:var(--muted); margin-bottom:20px; }
+    .layout { display:grid; grid-template-columns:340px 1fr; gap:20px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:20px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+    .card h2 { margin:0; font-size:18px; }
+    .card-head { padding:18px 18px 0; }
+    .card-body { padding:18px; }
+    .search { width:100%; padding:12px 14px; border:1px solid var(--border); border-radius:14px; font-size:14px; }
+    .traits { max-height:520px; overflow:auto; border:1px solid var(--border); border-radius:16px; padding:10px; background:#fff; }
+    .trait { display:flex; gap:10px; align-items:flex-start; padding:8px; border-radius:10px; }
+    .trait:hover { background:#f8fafc; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { background:var(--chip); color:#3730a3; padding:7px 10px; border-radius:999px; font-size:12px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+    button { border:0; background:var(--accent); color:#fff; padding:11px 14px; border-radius:14px; font-size:14px; cursor:pointer; }
+    button.secondary { background:#e2e8f0; color:#0f172a; }
+    .count { color:var(--muted); font-size:14px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+    .item { border:1px solid var(--border); border-radius:16px; padding:14px; background:#fff; }
+    .item h3 { margin:0 0 10px; font-size:16px; }
+    .empty { text-align:center; padding:48px 16px; color:var(--muted); border:1px dashed var(--border); border-radius:18px; background:#fff; }
+    .notice { padding:14px 16px; border:1px solid var(--border); border-radius:16px; background:#fff; color:var(--muted); margin-bottom:20px; }
+    footer { border-top:1px solid var(--border); margin-top:24px; padding-top:16px; color:var(--muted); font-size:12px; text-align:center; }
+    .topmeta { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 0; }
+    .pill { background:var(--accent-soft); color:#1d4ed8; font-size:12px; padding:7px 10px; border-radius:999px; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns:1fr; }
+      .traits { max-height:280px; }
+    }
+  </style>
+<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=45877"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>포켓몬 선호 특성 아이템 찾기</h1>
+    <div class="sub">엑셀 데이터를 사이트 안에 넣어뒀어요. 이제 파일 업로드 없이 바로 검색할 수 있어요.</div>
+    <div class="topmeta">
+      <div class="pill">내장 데이터 518개 아이템</div>
+      <div class="pill">여러 특성 동시 선택</div>
+      <div class="pill">선택한 특성을 모두 포함하는 아이템만 표시</div>
+    </div>
+
+    <div class="notice">
+      왼쪽에서 선호 특성을 여러 개 선택하면, 그 조건을 <strong>모두 만족하는 아이템</strong>만 오른쪽에 표시됩니다.
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <div class="card-head"><h2>조건 선택</h2></div>
+        <div class="card-body">
+          <input id="traitSearch" class="search" placeholder="특성 검색 예: 깜찍한 것" />
+          <div style="height:12px"></div>
+          <div class="toolbar">
+            <div class="count" id="traitCount"></div>
+            <button class="secondary" id="resetBtn">초기화</button>
+          </div>
+          <div style="height:12px"></div>
+          <div class="traits" id="traitList"></div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div class="card">
+          <div class="card-head">
+            <div class="toolbar">
+              <h2>선택한 조건</h2>
+              <button id="downloadBtn">결과 엑셀 저장</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chips" id="selectedChips"></div>
+            <div style="height:12px"></div>
+            <div class="count" id="matchCount"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>검색 결과</h2></div>
+          <div class="card-body">
+            <div class="grid" id="results"></div>
+            <div class="empty" id="emptyState" style="display:none;">조건을 만족하는 아이템이 없습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Pokemon is © Nintendo / Game Freak / The Pokemon Company.</p>
+      <p>This is an unofficial fan site. Not affiliated with or endorsed by Nintendo.</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    const DATA = [{"item": "CD 랙", "traits": ["컬러풀", "어려워 보이는 것", "넣을 수 있는 것", "모여 있는 것", "신기한 것", "보고 즐길 수 있는 것", "목제"]}, {"item": "CD 플레이어", "traits": ["전기로 움직이는 것", "다같이 사용하는 것", "소리가 나는 것"]}, {"item": "가든 라이트", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭"]}, {"item": "가든 오너먼트", "traits": ["모여 있는 것", "석조"]}, {"item": "가든 체어", "traits": ["자연이 느껴지는 것", "메탈릭"]}, {"item": "가든 테이블", "traits": ["자연이 느껴지는 것"]}, {"item": "가스레인지", "traits": ["불꽃이 느껴지는 것", "메탈릭", "신기한 것"]}, {"item": "가습기", "traits": ["전기로 움직이는 것", "유리로 만든 것", "상처를 치유하는 것", "물이 느껴지는 것", "동그란 것", "신기한 것"]}, {"item": "간판", "traits": ["문자가 있는 것", "상징", "목제"]}, {"item": "감자", "traits": []}, {"item": "감자 씨앗", "traits": []}, {"item": "감자 함버그", "traits": []}, {"item": "개구리밥", "traits": []}, {"item": "객실 벽", "traits": []}, {"item": "객실 침대", "traits": ["천으로 만든 것", "다같이 사용하는 것", "럭셔리", "부드러운 것", "목제"]}, {"item": "거친 깎인 바위", "traits": []}, {"item": "거친 모래사장", "traits": []}, {"item": "거친 벽", "traits": []}, {"item": "검은 띠", "traits": []}, {"item": "검은 안경", "traits": []}, {"item": "검은 진흙", "traits": []}, {"item": "검은 철구", "traits": ["딱딱한 것", "동그란 것"]}, {"item": "검은색 울퉁절벽 바위", "traits": []}, {"item": "검은색 절벽 바위", "traits": []}, {"item": "게이밍 냉장고", "traits": ["컬러풀", "넣을 수 있는 것", "전기로 움직이는 것", "유리로 만든 것", "메탈릭"]}, {"item": "게이밍 라이트", "traits": ["컬러풀", "전기로 움직이는 것", "모여 있는 것", "유리로 만든 것"]}, {"item": "게이밍 체어", "traits": ["컬러풀", "전기로 움직이는 것", "천으로 만든 것", "럭셔리", "반짝이는 것", "부드러운 것"]}, {"item": "게이밍 침대", "traits": ["컬러풀", "전기로 움직이는 것", "다같이 사용하는 것", "반짝이는 것", "부드러운 것"]}, {"item": "게이밍 컴퓨터", "traits": ["전기로 움직이는 것"]}, {"item": "게임보이", "traits": ["전기로 움직이는 것", "다같이 사용하는 것"]}, {"item": "격자 나무 바닥", "traits": []}, {"item": "골판지 상자", "traits": ["네모난 것", "넣을 수 있는 것", "모여 있는 것"]}, {"item": "공구 세트", "traits": ["건설", "넣을 수 있는 것", "모여 있는 것", "다같이 사용하는 것", "메탈릭", "동그란 것"]}, {"item": "공물대", "traits": []}, {"item": "관객 의자", "traits": ["메탈릭"]}, {"item": "광각 렌즈", "traits": []}, {"item": "괴력 바위", "traits": ["딱딱한 것"]}, {"item": "구급상자", "traits": ["상처를 치유하는 것", "컬러풀"]}, {"item": "귀여운 수풀", "traits": []}, {"item": "귀중한 뼈", "traits": []}, {"item": "그라운드 라이트", "traits": ["전기로 움직이는 것"]}, {"item": "그랜드 코트", "traits": []}, {"item": "그레이 오두막 키트", "traits": []}, {"item": "금 주괴", "traits": ["메탈릭"]}, {"item": "금 틀니", "traits": ["메탈릭", "반짝이는 것", "석조", "신기한 것"]}, {"item": "금구슬", "traits": ["동그란 것", "반짝이는 것"]}, {"item": "금왕관", "traits": ["동그란 것", "반짝이는 것"]}, {"item": "기젓의 씨앗", "traits": ["자연이 느껴지는 것"]}, {"item": "깅엄 체크", "traits": []}, {"item": "까칠까칠 바위", "traits": []}, {"item": "꽃 배낭", "traits": ["넣을 수 있는 것", "깜찍한 것", "만발한 꽃", "부드러운 것"]}, {"item": "꽃 식기 세트", "traits": ["컬러풀", "깜찍한 것", "모여 있는 것", "다같이 사용하는 것", "만발한 꽃", "부드러운 것"]}, {"item": "꽃 쿠션", "traits": ["깜찍한 것", "다같이 사용하는 것", "만발한 꽃", "부드러운 것"]}, {"item": "꽃 테이블", "traits": ["만발한 꽃"]}, {"item": "끈적끈적 실", "traits": []}, {"item": "나무 걸상", "traits": []}, {"item": "나무 계단", "traits": []}, {"item": "나무 교차문", "traits": []}, {"item": "나무 기둥 (아래)", "traits": []}, {"item": "나무 기둥 (위)", "traits": []}, {"item": "나무 기둥 (중간)", "traits": []}, {"item": "나무 기둥·가운데", "traits": []}, {"item": "나무 긴 의자", "traits": ["다같이 사용하는 것"]}, {"item": "나무 길", "traits": []}, {"item": "나무 난간", "traits": []}, {"item": "나무 바닥", "traits": []}, {"item": "나무 벽", "traits": []}, {"item": "나무 벽·라이트", "traits": []}, {"item": "나무 병풍", "traits": []}, {"item": "나무 사다리", "traits": []}, {"item": "나무 상자", "traits": ["네모난 것", "넣을 수 있는 것", "목제"]}, {"item": "나무 새집", "traits": ["넣을 수 있는 것", "홀쭉한 것"]}, {"item": "나무 울타리", "traits": []}, {"item": "나무 울타리문", "traits": []}, {"item": "나무 접시", "traits": ["목제"]}, {"item": "나무 침대", "traits": ["다같이 사용하는 것", "자연이 느껴지는 것", "부드러운 것"]}, {"item": "나무 칸막이 (모서리)", "traits": []}, {"item": "나무 칸막이·직선", "traits": []}, {"item": "나무 테두리 (모서리)", "traits": []}, {"item": "나무 테두리 (미니)", "traits": []}, {"item": "나무 테두리 (직선)", "traits": []}, {"item": "나무 테이블", "traits": ["목제"]}, {"item": "나무 틈새 칸막이", "traits": []}, {"item": "나무 폭신 기둥", "traits": []}, {"item": "나무열매 무늬", "traits": ["음식 같은 것", "자연이 느껴지는 것"]}, {"item": "나무열매 바구니", "traits": ["넣을 수 있는 것", "음식 같은 것", "자연이 느껴지는 것"]}, {"item": "낮잠 침대", "traits": []}, {"item": "노란 깎인 바위", "traits": []}, {"item": "노란 바위", "traits": []}, {"item": "노란 오두막 키트", "traits": []}, {"item": "노란 집 키트", "traits": []}, {"item": "노란 풀", "traits": []}, {"item": "노출 콘크리트 벽", "traits": []}, {"item": "느림보꼬리", "traits": ["딱딱한 것"]}, {"item": "다다미", "traits": []}, {"item": "다우징 머신", "traits": []}, {"item": "단단한 돌", "traits": []}, {"item": "달밤의 댄스상 키트", "traits": []}, {"item": "달콤한꿀", "traits": []}, {"item": "당초무늬", "traits": []}, {"item": "대리석", "traits": []}, {"item": "대리석 바닥·다크", "traits": []}, {"item": "대리석 바닥·라이트", "traits": []}, {"item": "도르래", "traits": []}, {"item": "도시락", "traits": []}, {"item": "도토링 램프", "traits": ["전기로 움직이는 것", "유리로 만든 것", "자연이 느껴지는 것", "동그란 것"]}, {"item": "돌 계단", "traits": ["딱딱한 것", "석조"]}, {"item": "돌 긴 의자", "traits": ["다같이 사용하는 것", "딱딱한 것", "석조"]}, {"item": "돌 라인 바닥", "traits": []}, {"item": "돌 바닥", "traits": ["딱딱한 것", "석조"]}, {"item": "돌 방 키트", "traits": []}, {"item": "돌 벽난로", "traits": ["컬러풀", "딱딱한 것", "럭셔리", "석조"]}, {"item": "돌 오두막 키트", "traits": []}, {"item": "돌 울타리", "traits": ["딱딱한 것", "석조"]}, {"item": "돌 집 키트", "traits": []}, {"item": "돌 타일", "traits": ["딱딱한 것", "석조"]}, {"item": "돌 테이블", "traits": ["딱딱한 것"]}, {"item": "돌기둥 (아래)", "traits": ["딱딱한 것", "석조"]}, {"item": "돌기둥 (위)", "traits": ["딱딱한 것", "석조"]}, {"item": "돌기둥 (중간)", "traits": ["딱딱한 것", "석조"]}, {"item": "돌벽돌 벽", "traits": ["딱딱한 것", "석조"]}, {"item": "돌쌓기 벽", "traits": []}, {"item": "돌지붕 장식", "traits": ["딱딱한 것", "석조"]}, {"item": "두개의 화석", "traits": ["딱딱한 것", "흙이 느껴지는 것", "신기한 것"]}, {"item": "들판 꽃 씨앗", "traits": []}, {"item": "뜨개질 키트", "traits": ["컬러풀"]}, {"item": "뜨거운 바위", "traits": []}, {"item": "럭셔리 램프", "traits": ["전기로 움직이는 것"]}, {"item": "럭셔리 소파", "traits": []}, {"item": "럭셔리 의자", "traits": ["럭셔리", "메탈릭", "기이한 것"]}, {"item": "럭셔리 침대", "traits": ["다같이 사용하는 것", "럭셔리", "부드러운 것", "석조"]}, {"item": "럭셔리 테이블", "traits": ["럭셔리"]}, {"item": "럭셔리 화장대", "traits": ["넣을 수 있는 것", "유리로 만든 것", "럭셔리", "신기한 것"]}, {"item": "맛있는물", "traits": []}, {"item": "망나뇽 인형", "traits": ["깜찍한 것", "천으로 만든 것", "부드러운 것"]}, {"item": "먹기 좋은 당근", "traits": []}, {"item": "먹기 좋은 버섯", "traits": []}, {"item": "먹다남은 음식", "traits": ["음식 같은 것"]}, {"item": "멋진 수풀", "traits": []}, {"item": "멋진 일렉 기타", "traits": ["전기로 움직이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "멋진 일렉베이스", "traits": ["전기로 움직이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "모닥불", "traits": ["다같이 사용하는 것", "불꽃이 느껴지는 것", "석조"]}, {"item": "모래 방 키트", "traits": []}, {"item": "모래 오두막 키트", "traits": []}, {"item": "모래 집 키트", "traits": []}, {"item": "모래밭", "traits": ["다같이 사용하는 것", "흙이 느껴지는 것", "놀이 공간"]}, {"item": "모서리 선반", "traits": []}, {"item": "목욕 세트", "traits": ["청결", "깜찍한 것", "물이 느껴지는 것", "반짝이는 것"]}, {"item": "목재", "traits": []}, {"item": "물감·검정", "traits": ["컬러풀"]}, {"item": "물감·노랑", "traits": []}, {"item": "물감·분홍", "traits": []}, {"item": "물감·빨강", "traits": []}, {"item": "물감·초록", "traits": []}, {"item": "물감·파랑", "traits": []}, {"item": "물감·하늘색", "traits": []}, {"item": "물감·하양", "traits": ["컬러풀"]}, {"item": "미끄럼틀", "traits": ["다같이 사용하는 것", "놀이 공간", "목제"]}, {"item": "바다소리 방울", "traits": ["바람이 느껴지는 것", "소리가 나는 것", "동그란 것", "신기한 것"]}, {"item": "바람개비", "traits": ["컬러풀", "모여 있는 것", "바람이 느껴지는 것", "놀이 공간", "돌아가는 것", "보고 즐길 수 있는 것"]}, {"item": "바위밭 꽃 씨앗", "traits": []}, {"item": "바위지대의 꽃", "traits": ["만발한 꽃"]}, {"item": "박치기화석 (꼬리)", "traits": ["홀쭉한 것", "딱딱한 것", "신기한 것", "럭셔리"]}, {"item": "박치기화석 (머리)", "traits": ["딱딱한 것", "신기한 것", "럭셔리"]}, {"item": "박치기화석 (몸통)", "traits": ["홀쭉한 것", "딱딱한 것", "신기한 것", "럭셔리"]}, {"item": "방패의 화석", "traits": ["딱딱한 것", "흙이 느껴지는 것", "동그란 것", "신기한 것"]}, {"item": "버섯 가로등", "traits": ["반짝이는 것", "홀쭉한 것", "기이한 것"]}, {"item": "버섯 램프", "traits": ["전기로 움직이는 것", "목제"]}, {"item": "버섯 스프", "traits": []}, {"item": "버섯 함버그", "traits": []}, {"item": "벽 수납 박스", "traits": ["네모난 것", "넣을 수 있는 것", "목제"]}, {"item": "벽 스위치", "traits": ["전기로 움직이는 것"]}, {"item": "벽걸이 거울", "traits": ["유리로 만든 것", "럭셔리", "신기한 것", "보고 즐길 수 있는 것"]}, {"item": "벽걸이 꽃", "traits": ["컬러풀", "만발한 꽃"]}, {"item": "벽걸이 난간", "traits": []}, {"item": "벽걸이 달력", "traits": ["문자가 있는 것", "보고 즐길 수 있는 것"]}, {"item": "벽걸이 모니터", "traits": ["전기로 움직이는 것", "유리로 만든 것", "다같이 사용하는 것", "문자가 있는 것", "메탈릭", "반짝이는 것", "보고 즐길 수 있는 것"]}, {"item": "벽걸이 사진틀", "traits": ["넣을 수 있는 것", "보고 즐길 수 있는 것"]}, {"item": "벽걸이 타월", "traits": ["청결", "천으로 만든 것", "부드러운 것"]}, {"item": "벽걸이 테이블", "traits": ["목제"]}, {"item": "벽걸이 횃불", "traits": ["불꽃이 느껴지는 것", "석조"]}, {"item": "벽등", "traits": ["전기로 움직이는 것", "유리로 만든 것"]}, {"item": "보송보송바위", "traits": []}, {"item": "보조 가방", "traits": []}, {"item": "복분열매", "traits": []}, {"item": "부두 판자", "traits": []}, {"item": "부유섬 포켓몬센터 키트", "traits": []}, {"item": "부유섬의 꽃", "traits": ["만발한 꽃"]}, {"item": "부유섬의 모래", "traits": []}, {"item": "부유섬의 모래 바위", "traits": []}, {"item": "부유섬의 울퉁절벽 바위", "traits": []}, {"item": "부유섬의 절벽 바위", "traits": []}, {"item": "부채꼴 지붕", "traits": []}, {"item": "분쇄 샐러드", "traits": []}, {"item": "비눗방울 무늬", "traits": []}, {"item": "비늘 타일", "traits": []}, {"item": "빈 깡통통", "traits": ["넣을 수 있는 것", "메탈릭"]}, {"item": "빙글빙글 덩굴", "traits": []}, {"item": "빙수", "traits": ["컬러풀", "음식 같은 것", "물이 느껴지는 것"]}, {"item": "빨간 실", "traits": []}, {"item": "빨간 풀", "traits": []}, {"item": "빨간색 깎인 바위", "traits": []}, {"item": "빨간색 절벽 바위", "traits": []}, {"item": "사각 타일", "traits": []}, {"item": "사다리", "traits": []}, {"item": "사무실 선반", "traits": ["넣을 수 있는 것", "모여 있는 것", "유리로 만든 것", "문자가 있는 것", "메탈릭"]}, {"item": "사무실 의자", "traits": ["천으로 만든 것", "메탈릭", "부드러운 것"]}, {"item": "사무실 책상", "traits": ["메탈릭"]}, {"item": "사무실 캐비닛", "traits": ["넣을 수 있는 것", "메탈릭", "목제"]}, {"item": "사슬", "traits": ["메탈릭", "홀쭉한 것"]}, {"item": "사이드 테이블", "traits": []}, {"item": "사이버 바닥", "traits": []}, {"item": "사이코소다", "traits": []}, {"item": "사진 거치대", "traits": ["넣을 수 있는 것", "다같이 사용하는 것", "보고 즐길 수 있는 것"]}, {"item": "산악의 잔디", "traits": []}, {"item": "삼각 무늬 바닥", "traits": []}, {"item": "삼각 지붕벽돌", "traits": []}, {"item": "상점 바닥", "traits": []}, {"item": "상한 나무열매", "traits": []}, {"item": "샌드백", "traits": ["트레이닝에 쓰는 것", "천으로 만든 것", "흙이 느껴지는 것", "흔들리는 것"]}, {"item": "샌드위치", "traits": ["컬러풀", "모여 있는 것", "음식 같은 것"]}, {"item": "생명의 구슬", "traits": ["동그란 것"]}, {"item": "샤워", "traits": ["청결", "물이 느껴지는 것", "메탈릭", "홀쭉한 것", "신기한 것"]}, {"item": "서머 침대", "traits": ["바다가 느껴지는 것"]}, {"item": "석회석", "traits": []}, {"item": "선로", "traits": []}, {"item": "선제공격손톱", "traits": []}, {"item": "선풍기", "traits": ["전기로 움직이는 것", "메탈릭", "바람이 느껴지는 것"]}, {"item": "세련된 걸상", "traits": ["컬러풀", "깜찍한 것", "천으로 만든 것", "부드러운 것"]}, {"item": "세련된 계단", "traits": []}, {"item": "세련된 냄비", "traits": []}, {"item": "세련된 바닥돌", "traits": []}, {"item": "세련된 벽 (아래)", "traits": []}, {"item": "세련된 벽 (위)", "traits": []}, {"item": "세련된 벽·가운데", "traits": []}, {"item": "세련된 벽돌 (아래)", "traits": []}, {"item": "세련된 벽돌 (위)", "traits": []}, {"item": "세련된 벽돌·가운데", "traits": []}, {"item": "세련된 볼 무늬", "traits": []}, {"item": "세련된 철 벽", "traits": []}, {"item": "세련된 카페 키트", "traits": []}, {"item": "세련된 타일", "traits": []}, {"item": "세련된 프라이팬", "traits": []}, {"item": "세련된 황금 벽", "traits": []}, {"item": "세로 스트라이프", "traits": []}, {"item": "세로 철골", "traits": ["메탈릭"]}, {"item": "세로라인 벽", "traits": []}, {"item": "세로통나무", "traits": []}, {"item": "세면대", "traits": ["청결", "물이 느껴지는 것", "석조", "신기한 것"]}, {"item": "세모난 나무", "traits": []}, {"item": "세탁기", "traits": ["청결", "넣을 수 있는 것", "전기로 움직이는 것", "유리로 만든 것", "메탈릭", "신기한 것"]}, {"item": "센서", "traits": ["전기로 움직이는 것"]}, {"item": "셔터", "traits": []}, {"item": "소화전", "traits": ["물이 느껴지는 것", "메탈릭", "반짝이는 것"]}, {"item": "속임수주사위", "traits": []}, {"item": "수납 박스", "traits": ["네모난 것", "목제"]}, {"item": "수상한 디퓨저", "traits": ["물이 느껴지는 것", "메탈릭", "신기한 것"]}, {"item": "수상한 캔들", "traits": []}, {"item": "수정 구슬", "traits": ["천으로 만든 것", "유리로 만든 것", "동그란 것", "반짝이는 것", "신기한 것"]}, {"item": "스마트 도어", "traits": []}, {"item": "스위트 벽·가운데", "traits": []}, {"item": "스위트 벽·아래", "traits": []}, {"item": "스위트 벽·위", "traits": []}, {"item": "스크랩", "traits": []}, {"item": "스타일리시 문", "traits": []}, {"item": "스탠드 간판", "traits": ["문자가 있는 것", "메탈릭", "반짝이는 것", "석조", "상징"]}, {"item": "스탠드 마이크", "traits": ["전기로 움직이는 것", "다같이 사용하는 것", "반짝이는 것", "신기한 것"]}, {"item": "스테이지 받침", "traits": ["다같이 사용하는 것", "메탈릭", "놀이 공간", "동그란 것", "돌아가는 것", "신기한 것"]}, {"item": "스테인드글라스 (아래)", "traits": ["유리로 만든 것"]}, {"item": "스테인드글라스 (위)", "traits": ["유리로 만든 것"]}, {"item": "스테인드글라스·가운데", "traits": ["유리로 만든 것"]}, {"item": "스포트라이트", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭"]}, {"item": "스프링쿨러", "traits": ["물이 느껴지는 것", "메탈릭", "석조", "신기한 것"]}, {"item": "스피커", "traits": ["전기로 움직이는 것", "소리가 나는 것"]}, {"item": "시든 초록 풀", "traits": []}, {"item": "시크한 가로등", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭", "반짝이는 것", "홀쭉한 것"]}, {"item": "시크한 소파", "traits": ["천으로 만든 것", "다같이 사용하는 것", "럭셔리", "부드러운 것"]}, {"item": "시크한 의자", "traits": ["천으로 만든 것", "럭셔리", "부드러운 것"]}, {"item": "시크한 테이블", "traits": ["럭셔리"]}, {"item": "식기 선반", "traits": ["넣을 수 있는 것", "모여 있는 것", "유리로 만든 것", "럭셔리", "목제"]}, {"item": "신문", "traits": ["문자가 있는 것", "보고 즐길 수 있는 것"]}, {"item": "신비의 물방울", "traits": ["물이 느껴지는 것"]}, {"item": "실드 화석 (꼬리)", "traits": ["홀쭉한 것", "딱딱한 것", "신기한 것", "럭셔리"]}, {"item": "실드화석 (머리)", "traits": ["딱딱한 것", "신기한 것", "럭셔리"]}, {"item": "실드화석 (몸통)", "traits": ["홀쭉한 것", "딱딱한 것", "신기한 것", "럭셔리"]}, {"item": "실뭉치", "traits": ["홀쭉한 것"]}, {"item": "실크 스카프", "traits": ["천으로 만든 것"]}, {"item": "실험 세트", "traits": ["모여 있는 것", "유리로 만든 것", "문자가 있는 것", "메탈릭"]}, {"item": "심플 문", "traits": []}, {"item": "심플 사각 타일", "traits": []}, {"item": "심플 커튼 (오른쪽)", "traits": []}, {"item": "심플 커튼 (왼쪽)", "traits": []}, {"item": "심플 쿠션", "traits": ["천으로 만든 것", "부드러운 것"]}, {"item": "심플한 기둥 (1/4)", "traits": []}, {"item": "심플한 바닥", "traits": []}, {"item": "싱크대", "traits": ["청결", "물이 느껴지는 것", "메탈릭", "신기한 것"]}, {"item": "쏘드라 분수", "traits": ["물이 느껴지는 것", "바다가 느껴지는 것", "석조", "신기한 것"]}, {"item": "쓰레기 봉투", "traits": ["쓰레기", "모여 있는 것"]}, {"item": "쓰레기통", "traits": ["넣을 수 있는 것", "쓰레기", "메탈릭"]}, {"item": "아가일 체크", "traits": []}, {"item": "아스팔트 길", "traits": []}, {"item": "아치 다리", "traits": []}, {"item": "아치 타일", "traits": []}, {"item": "아치폴 (잎)", "traits": []}, {"item": "아케이드 게임기", "traits": ["전기로 움직이는 것", "유리로 만든 것", "다같이 사용하는 것", "놀이 공간"]}, {"item": "아쿠아한 기둥 (1/4)", "traits": ["유리로 만든 것", "물이 느껴지는 것", "보고 즐길 수 있는 것"]}, {"item": "안내 게시판", "traits": ["문자가 있는 것", "메탈릭", "반짝이는 것", "석조", "상징"]}, {"item": "알록달록 햄버그", "traits": []}, {"item": "애프터눈 티 세트", "traits": ["컬러풀", "모여 있는 것", "음식 같은 것", "럭셔리"]}, {"item": "액자", "traits": ["넣을 수 있는 것", "문자가 있는 것", "보고 즐길 수 있는 것", "목제"]}, {"item": "앤티크 드레서", "traits": ["유리로 만든 것", "럭셔리"]}, {"item": "앤티크 벽 (아래)", "traits": []}, {"item": "앤티크 벽 (위)", "traits": []}, {"item": "앤티크 벽·가운데", "traits": []}, {"item": "앤티크 샹들리에", "traits": ["전기로 움직이는 것", "유리로 만든 것", "럭셔리", "메탈릭"]}, {"item": "앤티크 서랍장", "traits": ["넣을 수 있는 것", "럭셔리", "목제"]}, {"item": "앤티크 소파", "traits": ["컬러풀", "천으로 만든 것", "다같이 사용하는 것", "럭셔리", "부드러운 것"]}, {"item": "앤티크 시계", "traits": ["유리로 만든 것", "럭셔리", "목제"]}, {"item": "앤티크 옷장", "traits": ["넣을 수 있는 것", "럭셔리", "목제"]}, {"item": "앤티크 체어", "traits": ["컬러풀", "천으로 만든 것", "럭셔리", "부드러운 것"]}, {"item": "앤티크 침대", "traits": ["천으로 만든 것", "다같이 사용하는 것", "럭셔리", "부드러운 것"]}, {"item": "앤티크 테이블", "traits": ["럭셔리", "목제"]}, {"item": "약점 보험", "traits": ["문자가 있는 것"]}, {"item": "어른의 햄버그", "traits": []}, {"item": "얼굴 패널", "traits": ["컬러풀", "깜찍한 것", "모여 있는 것", "다같이 사용하는 것", "보고 즐길 수 있는 것"]}, {"item": "얼음", "traits": []}, {"item": "엉킨 코드", "traits": ["넣을 수 있는 것", "전기로 움직이는 것", "쓰레기", "모여 있는 것", "다같이 사용하는 것", "메탈릭"]}, {"item": "에어컨", "traits": ["전기로 움직이는 것", "메탈릭", "바람이 느껴지는 것", "신기한 것"]}, {"item": "엘리베이터", "traits": []}, {"item": "여닫이 창", "traits": ["유리로 만든 것"]}, {"item": "연갈색 깎인 바위", "traits": []}, {"item": "연갈색 바위", "traits": []}, {"item": "연필꽂이", "traits": ["넣을 수 있는 것", "모여 있는 것", "석조"]}, {"item": "열매 매달이 램프", "traits": ["깜찍한 것", "전기로 움직이는 것", "유리로 만든 것", "음식 같은 것", "자연이 느껴지는 것", "홀쭉한 것"]}, {"item": "열매 벽 장식", "traits": ["컬러풀", "모여 있는 것", "음식 같은 것", "자연이 느껴지는 것", "보고 즐길 수 있는 것"]}, {"item": "열매 시계", "traits": ["깜찍한 것", "천으로 만든 것", "음식 같은 것", "자연이 느껴지는 것", "동그란 것", "흔들리는 것"]}, {"item": "열매 의자", "traits": ["깜찍한 것", "음식 같은 것", "자연이 느껴지는 것", "부드러운 것"]}, {"item": "열매 침대", "traits": ["깜찍한 것", "천으로 만든 것", "음식 같은 것", "자연이 느껴지는 것", "부드러운 것"]}, {"item": "열매 케이스", "traits": ["넣을 수 있는 것", "깜찍한 것", "음식 같은 것", "자연이 느껴지는 것"]}, {"item": "열매 테이블", "traits": ["음식 같은 것", "자연이 느껴지는 것"]}, {"item": "열매 테이블 램프", "traits": ["깜찍한 것", "전기로 움직이는 것", "유리로 만든 것", "음식 같은 것", "자연이 느껴지는 것"]}, {"item": "예리한부리", "traits": []}, {"item": "오디오 믹서", "traits": ["전기로 움직이는 것", "신기한 것"]}, {"item": "오뚝이 마자용", "traits": ["깜찍한 것", "트레이닝에 쓰는 것", "놀이 공간", "동그란 것", "신기한 것", "흔들리는 것"]}, {"item": "오렌지 오두막 키트", "traits": []}, {"item": "오렌지 집 키트", "traits": []}, {"item": "오피스 로커", "traits": ["넣을 수 있는 것", "메탈릭"]}, {"item": "우주복", "traits": ["유리로 만든 것", "메탈릭", "반짝이는 것", "석조"]}, {"item": "우주선", "traits": ["유리로 만든 것", "메탈릭", "탈것", "동그란 것", "석조"]}, {"item": "우주왕복선 모형", "traits": ["메탈릭", "바람이 느껴지는 것", "탈것", "반짝이는 것", "석조"]}, {"item": "울퉁절벽 바위", "traits": []}, {"item": "위험 지대 벽", "traits": []}, {"item": "윈디 인형", "traits": ["깜찍한 것", "천으로 만든 것"]}, {"item": "유루열매", "traits": []}, {"item": "유리", "traits": ["유리로 만든 것"]}, {"item": "유리창", "traits": ["유리로 만든 것"]}, {"item": "은빛깃털", "traits": ["반짝이는 것"]}, {"item": "은왕관", "traits": ["동그란 것", "반짝이는 것"]}, {"item": "음표 매트 (높은 도)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트 (라)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트 (레)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트 (미)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트 (솔)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트 (시)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트 (파)", "traits": ["반짝이는 것", "소리가 나는 것", "신기한 것"]}, {"item": "음표 매트·도", "traits": ["소리가 나는 것"]}, {"item": "이글이글 바위", "traits": []}, {"item": "이끼", "traits": []}, {"item": "이끼 바위", "traits": []}, {"item": "이브이 인형", "traits": ["깜찍한 것", "천으로 만든 것", "부드러운 것"]}, {"item": "인더스트리얼 데스크", "traits": ["메탈릭"]}, {"item": "인더스트리얼 벤치", "traits": ["다같이 사용하는 것", "메탈릭"]}, {"item": "인더스트리얼 체어", "traits": ["메탈릭"]}, {"item": "인더스트리얼 침대", "traits": ["천으로 만든 것", "다같이 사용하는 것", "메탈릭", "부드러운 것"]}, {"item": "일루미네이션 라이트", "traits": ["전기로 움직이는 것"]}, {"item": "잉어킹 지붕기와", "traits": []}, {"item": "자동문", "traits": []}, {"item": "자전거", "traits": ["트레이닝에 쓰는 것", "메탈릭", "탈것", "신기한 것"]}, {"item": "자판기", "traits": ["유리로 만든 것", "다같이 사용하는 것", "메탈릭", "뾰족한 것"]}, {"item": "작은 긴 사각 러그", "traits": []}, {"item": "작은 분실물", "traits": []}, {"item": "작은 사각 러그", "traits": []}, {"item": "작은 쓰레기통", "traits": ["넣을 수 있는 것", "쓰레기", "메탈릭", "동그란 것"]}, {"item": "작은 원형 러그", "traits": []}, {"item": "작은 통나무", "traits": []}, {"item": "잔디 바닥", "traits": []}, {"item": "잡지 꽂이", "traits": ["컬러풀", "어려워 보이는 것", "넣을 수 있는 것", "모여 있는 것", "보고 즐길 수 있는 것", "목제"]}, {"item": "장식 선반 (원예)", "traits": ["모여 있는 것", "만발한 꽃"]}, {"item": "장식 선반·용기", "traits": ["모여 있는 것", "석조", "신기한 것"]}, {"item": "장식선반 (책)", "traits": ["모여 있는 것", "문자가 있는 것"]}, {"item": "전환 무선 송전기", "traits": ["전기로 움직이는 것"]}, {"item": "절벽 바위", "traits": []}, {"item": "접시", "traits": []}, {"item": "정원 벤치", "traits": ["다같이 사용하는 것", "자연이 느껴지는 것", "메탈릭"]}, {"item": "정원 플라워", "traits": ["컬러풀", "만발한 꽃"]}, {"item": "조개 램프", "traits": ["깜찍한 것", "전기로 움직이는 것", "유리로 만든 것", "바다가 느껴지는 것"]}, {"item": "조개 흙", "traits": []}, {"item": "조작판", "traits": []}, {"item": "족자", "traits": ["문자가 있는 것", "신기한 것"]}, {"item": "종이", "traits": []}, {"item": "죽순 바위", "traits": []}, {"item": "줄무늬 흙", "traits": []}, {"item": "쥬시 스프", "traits": []}, {"item": "지그재그 격자", "traits": []}, {"item": "짐마크 석상", "traits": ["반짝이는 것", "석조"]}, {"item": "집 칸막이", "traits": []}, {"item": "차단기", "traits": []}, {"item": "채썬 셀러드", "traits": []}, {"item": "철 파이프 더미", "traits": []}, {"item": "철망 바닥", "traits": []}, {"item": "철망 벽", "traits": []}, {"item": "청소 세트", "traits": ["청결", "물이 느껴지는 것", "반짝이는 것"]}, {"item": "초원의 잔디", "traits": []}, {"item": "초코 쿠키", "traits": ["컬러풀", "모여 있는 것", "음식 같은 것", "동그란 것"]}, {"item": "축복받은 갑옷", "traits": []}, {"item": "칠리소스", "traits": []}, {"item": "카누", "traits": ["다같이 사용하는 것", "동그란 것"]}, {"item": "카드 리더", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭", "신기한 것"]}, {"item": "카레 무늬", "traits": []}, {"item": "카레라이스", "traits": []}, {"item": "카운터 받침대", "traits": ["목제"]}, {"item": "캐럿 빵", "traits": []}, {"item": "캔버스·무지", "traits": ["보고 즐길 수 있는 것"]}, {"item": "캔버스·정물화", "traits": ["보고 즐길 수 있는 것"]}, {"item": "캔버스·초상화", "traits": ["보고 즐길 수 있는 것"]}, {"item": "캔버스·풍경화", "traits": ["보고 즐길 수 있는 것"]}, {"item": "캠프파이어", "traits": ["다같이 사용하는 것", "불꽃이 느껴지는 것", "보고 즐길 수 있는 것"]}, {"item": "컴퓨터", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭", "반짝이는 것"]}, {"item": "코르크보드", "traits": ["모여 있는 것", "보고 즐길 수 있는 것"]}, {"item": "콘크리트", "traits": []}, {"item": "콘크리트 계단", "traits": []}, {"item": "콘크리트 뚜껑", "traits": []}, {"item": "콘크리트 믹서", "traits": []}, {"item": "콘크리트 테두리 (모서리)", "traits": []}, {"item": "콘크리트 테두리 (미니)", "traits": []}, {"item": "콘크리트 테두리 (직선)", "traits": []}, {"item": "큐트 램프", "traits": ["깜찍한 것", "전기로 움직이는 것", "유리로 만든 것"]}, {"item": "큐트 소파", "traits": ["깜찍한 것", "천으로 만든 것", "다같이 사용하는 것", "부드러운 것"]}, {"item": "큐트 의자", "traits": ["깜찍한 것", "천으로 만든 것", "부드러운 것"]}, {"item": "큐트 침대", "traits": ["깜찍한 것", "천으로 만든 것", "부드러운 것"]}, {"item": "큐트한 테이블", "traits": ["깜찍한 것"]}, {"item": "큐트한 화장대", "traits": ["넣을 수 있는 것", "깜찍한 것", "유리로 만든 것", "신기한 것"]}, {"item": "크래시 타일 벽", "traits": []}, {"item": "크래커", "traits": []}, {"item": "크래프트 받침대", "traits": []}, {"item": "크루통 샐러드", "traits": []}, {"item": "크리스탈 벽", "traits": []}, {"item": "크리스탈 조각", "traits": ["유리로 만든 것", "반짝이는 것"]}, {"item": "크림 소다", "traits": ["컬러풀", "음식 같은 것", "물이 느껴지는 것"]}, {"item": "큰 거울", "traits": ["유리로 만든 것", "럭셔리", "신기한 것"]}, {"item": "큰 긴 사각 러그", "traits": []}, {"item": "큰 나무 문", "traits": []}, {"item": "큰 돌", "traits": []}, {"item": "큰 북", "traits": ["동그란 것", "흔들리는 것"]}, {"item": "큰 분실물", "traits": ["신기한 것"]}, {"item": "큰 뿌리", "traits": ["자연이 느껴지는 것"]}, {"item": "큰 사각 러그", "traits": []}, {"item": "큰 야자나무", "traits": []}, {"item": "큰 원형 러그", "traits": []}, {"item": "큰 환풍기", "traits": ["메탈릭", "바람이 느껴지는 것", "신기한 것"]}, {"item": "클레베이스 테이블", "traits": []}, {"item": "클리어참", "traits": ["유리로 만든 것", "반짝이는 것"]}, {"item": "키친 테이블", "traits": []}, {"item": "타운 맵", "traits": ["신기한 것", "보고 즐길 수 있는 것"]}, {"item": "타원형 러그", "traits": []}, {"item": "타이어", "traits": ["모여 있는 것", "동그란 것", "흔들리는 것"]}, {"item": "타일 카펫", "traits": []}, {"item": "타탄 체크", "traits": []}, {"item": "탁상 마이크", "traits": ["전기로 움직이는 것", "반짝이는 것"]}, {"item": "태블릿", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭", "반짝이는 것"]}, {"item": "턱의 화석", "traits": ["딱딱한 것", "흙이 느껴지는 것", "신기한 것"]}, {"item": "톱니 무늬", "traits": []}, {"item": "평평한 돌지붕", "traits": []}, {"item": "평평한 지붕기와", "traits": []}, {"item": "평평한 지붕벽돌", "traits": []}, {"item": "평평한 텐트지붕", "traits": []}, {"item": "풀 벽 장식", "traits": ["자연이 느껴지는 것", "홀쭉한 것"]}, {"item": "풍향계", "traits": ["메탈릭", "바람이 느껴지는 것"]}, {"item": "하얀 깎인 바위", "traits": []}, {"item": "하얀 바위", "traits": []}, {"item": "학습 책상", "traits": ["목제"]}, {"item": "한 송이 꽃병", "traits": ["넣을 수 있는 것", "만발한 꽃", "홀쭉한 것", "석조", "보고 즐길 수 있는 것"]}, {"item": "함초롬한 수풀", "traits": []}, {"item": "해변 포켓몬센터 키트", "traits": []}, {"item": "해안가의 잔디", "traits": []}, {"item": "해안의 꽃", "traits": []}, {"item": "해안의 모래", "traits": []}, {"item": "해체 키트", "traits": []}, {"item": "해초", "traits": []}, {"item": "해초 샐러드", "traits": []}, {"item": "해초 스프", "traits": []}, {"item": "행복의 알", "traits": ["동그란 것"]}, {"item": "현미경", "traits": ["유리로 만든 것", "메탈릭", "신기한 것", "보고 즐길 수 있는 것"]}, {"item": "현수막", "traits": ["컬러풀", "천으로 만든 것"]}, {"item": "형광등", "traits": ["전기로 움직이는 것", "유리로 만든 것", "반짝이는 것", "홀쭉한 것"]}, {"item": "호화로운 카펫", "traits": ["만발한 꽃", "보고 즐길 수 있는 것"]}, {"item": "화려한 기둥 (가운데)", "traits": []}, {"item": "화려한 기둥 (아래)", "traits": []}, {"item": "화려한 기둥 (위)", "traits": []}, {"item": "화산재", "traits": []}, {"item": "화염 구슬", "traits": ["동그란 것"]}, {"item": "화톳불", "traits": ["다같이 사용하는 것", "불꽃이 느껴지는 것", "동그란 것", "석조"]}, {"item": "활기찬 수풀", "traits": []}, {"item": "황금 벽", "traits": []}, {"item": "황무지 포켓몬센터 키트", "traits": []}, {"item": "횃불", "traits": ["불꽃이 느껴지는 것"]}, {"item": "회반죽 벽", "traits": []}, {"item": "회색 뱃지", "traits": []}, {"item": "회색 원형 바닥", "traits": []}, {"item": "후끈후끈 수프빵", "traits": []}, {"item": "훌륭한 도시집 키트", "traits": []}, {"item": "훌륭한 돌집 키트", "traits": []}, {"item": "훌륭한 모래집 키트", "traits": []}, {"item": "휴대전화", "traits": ["전기로 움직이는 것", "유리로 만든 것", "메탈릭", "반짝이는 것"]}, {"item": "흐물흐물 거울", "traits": []}, {"item": "흐물흐물 점토", "traits": ["부드러운 것"]}, {"item": "흩어진 책", "traits": []}, {"item": "힐링 공원 키트", "traits": []}];
+    const selectedTraits = new Set();
+
+    const traitSearch = document.getElementById('traitSearch');
+    const traitList = document.getElementById('traitList');
+    const selectedChips = document.getElementById('selectedChips');
+    const resultsEl = document.getElementById('results');
+    const emptyState = document.getElementById('emptyState');
+    const matchCount = document.getElementById('matchCount');
+    const traitCount = document.getElementById('traitCount');
+    const resetBtn = document.getElementById('resetBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const allTraits = [...new Set(DATA.flatMap(row => row.traits))].sort((a,b)=>a.localeCompare(b,'ko'));
+
+    function renderTraits() {
+      const q = traitSearch.value.trim();
+      const traits = q ? allTraits.filter(t => t.includes(q)) : allTraits;
+      traitList.innerHTML = '';
+      traitCount.textContent = `전체 특성 ${allTraits.length}개`;
+      if (!traits.length) {
+        traitList.innerHTML = '<div class="empty" style="padding:20px;">검색된 특성이 없습니다.</div>';
+        return;
+      }
+      traits.forEach(trait => {
+        const label = document.createElement('label');
+        label.className = 'trait';
+        label.innerHTML = `
+          <input type="checkbox" ${selectedTraits.has(trait) ? 'checked' : ''} />
+          <span>${trait}</span>
+        `;
+        label.querySelector('input').addEventListener('change', () => {
+          if (selectedTraits.has(trait)) selectedTraits.delete(trait);
+          else selectedTraits.add(trait);
+          renderSelected();
+          renderResults();
+          renderTraits();
+        });
+        traitList.appendChild(label);
+      });
+    }
+
+    function renderSelected() {
+      selectedChips.innerHTML = '';
+      if (!selectedTraits.size) {
+        selectedChips.innerHTML = '<div class="count">아직 선택한 조건이 없습니다.</div>';
+        return;
+      }
+      [...selectedTraits].sort((a,b)=>a.localeCompare(b,'ko')).forEach(trait => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = trait;
+        selectedChips.appendChild(chip);
+      });
+    }
+
+    function currentResults() {
+      if (!selectedTraits.size) return DATA;
+      return DATA.filter(row => [...selectedTraits].every(trait => row.traits.includes(trait)));
+    }
+
+    function renderResults() {
+      const matched = currentResults().sort((a,b)=>a.item.localeCompare(b.item,'ko'));
+      resultsEl.innerHTML = '';
+      matchCount.textContent = `조건을 모두 만족하는 아이템: ${matched.length}개`;
+      emptyState.style.display = matched.length ? 'none' : 'block';
+
+      matched.forEach(row => {
+        const card = document.createElement('div');
+        card.className = 'item';
+        card.innerHTML = `<h3>${row.item}</h3><div class="chips">${row.traits.map(t => `<span class="chip">${t}</span>`).join('')}</div>`;
+        resultsEl.appendChild(card);
+      });
+    }
+
+    traitSearch.addEventListener('input', renderTraits);
+    resetBtn.addEventListener('click', () => {
+      selectedTraits.clear();
+      traitSearch.value = '';
+      renderTraits();
+      renderSelected();
+      renderResults();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const rows = currentResults().map(row => ({
+        '아이템명': row.item,
+        '포켓몬 선호 특성': row.traits.join(', ')
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '결과');
+      XLSX.writeFile(wb, 'filtered_items.xlsx');
+    });
+
+    renderTraits();
+    renderSelected();
+    renderResults();
+  </script>
+</body>
+</html>
